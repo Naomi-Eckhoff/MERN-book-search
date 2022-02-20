@@ -1,5 +1,5 @@
 const { AuthenticationError } = require('apollo-server-express');
-const { Book, User } = require('../models');
+const { User } = require('../models');
 const { signToken } = require('../utils/auth');
 
 const resolvers = {
@@ -29,58 +29,59 @@ const resolvers = {
 
   Mutation: {
     // create a user, sign a token, and send it back (to client/src/components/SignUpForm.js)
-    async createUser({ body }, res) {
-      const user = await User.create(body);
+    createUser: async (parent, args) => {
+      const user = await User.create(args);
 
       if (!user) {
-        return res.status(400).json({ message: 'Something is wrong!' });
+        throw new AuthenticationError('Something is wrong!');
       }
+
       const token = signToken(user);
-      res.json({ token, user });
+
+      return { token, user };
     },
     // login a user, sign a token, and send it back (to client/src/components/LoginForm.js)
     // {body} is destructured req.body
-    async login({ body }, res) {
-      const user = await User.findOne({ $or: [{ username: body.username }, { email: body.email }] });
+    login: async (parent, { email, password }) => {
+      const user = await User.findOne({ email });
+
       if (!user) {
-        return res.status(400).json({ message: "Can't find this user" });
+        throw new AuthenticationError("Can't find this user");
       }
 
-      const correctPw = await user.isCorrectPassword(body.password);
+      const correctPw = await user.isCorrectPassword(password);
 
       if (!correctPw) {
-        return res.status(400).json({ message: 'Wrong password!' });
+        throw new AuthenticationError('Wrong password!');
       }
+
       const token = signToken(user);
-      res.json({ token, user });
+      return { token, user };
     },
     // save a book to a user's `savedBooks` field by adding it to the set (to prevent duplicates)
     // user comes from `req.user` created in the auth middleware function
-    async saveBook({ user, body }, res) {
-      console.log(user);
-      try {
-        const updatedUser = await User.findOneAndUpdate(
-          { _id: user._id },
-          { $addToSet: { savedBooks: body } },
-          { new: true, runValidators: true }
+    saveBook: async (parent, { bookData }, context) => {
+      if (context.user) {
+        const updatedUser = await User.findByIdAndUpdate(
+          { _id: context.user._id },
+          { $push: { savedBooks: bookData } },
+          { new: true }
         );
-        return res.json(updatedUser);
-      } catch (err) {
-        console.log(err);
-        return res.status(400).json(err);
+        return updatedUser;
       }
+      throw new AuthenticationError("Couldn't find user with this id!");
     },
     // remove a book from `savedBooks`
-    async deleteBook({ user, params }, res) {
-      const updatedUser = await User.findOneAndUpdate(
-        { _id: user._id },
-        { $pull: { savedBooks: { bookId: params.bookId } } },
-        { new: true }
-      );
-      if (!updatedUser) {
-        return res.status(404).json({ message: "Couldn't find user with this id!" });
+    deleteBook: async (parent, { bookId }, context) => {
+      if (context.user) {
+        const updatedUser = await User.findByIdAndUpdate(
+          { _id: context.user._id },
+          { $pull: { savedBooks: bookId } },
+          { new: true }
+        );
+        return updatedUser;
       }
-      return res.json(updatedUser);
+      throw new AuthenticationError("Couldn't find user with this id!");
     }
   }
 };
