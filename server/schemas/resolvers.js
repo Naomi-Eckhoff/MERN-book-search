@@ -6,7 +6,9 @@ const resolvers = {
   Query: {
     me: async (parent, args, context) => {
       if (context.user) {
-        const userData = await User.findOne({ _id: context.user._id }).select('-__v -password');
+        const userData = await User.findOne({ _id: context.user._id })
+          .select('-__v -password')
+          .populate('savedBooks');
 
         return userData;
       }
@@ -42,8 +44,10 @@ const resolvers = {
     },
     // login a user, sign a token, and send it back (to client/src/components/LoginForm.js)
     // {body} is destructured req.body
-    login: async (parent, { email, password }) => {
-      const user = await User.findOne({ email });
+    login: async (parent, { username, email, password }) => {
+      const params = username ? { username: username } : { email: email };
+
+      const user = await User.findOne(params);
 
       if (!user) {
         throw new AuthenticationError("Can't find this user");
