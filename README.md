@@ -15,6 +15,9 @@
 
   Download and run npm install. Start mongodb and then type npm run develop.
 
+  Alternatively this link is available to test the app
+    https://dashboard.heroku.com/apps/intense-plateau-55893
+    
   ## Usage
 
   Run npm install. Start mongodb and then type npm run develop. Create an account. After logging in you're free to search and save books.
