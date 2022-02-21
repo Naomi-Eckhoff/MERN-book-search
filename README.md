@@ -16,7 +16,7 @@
   Download and run npm install. Start mongodb and then type npm run develop.
 
   Alternatively this link is available to test the app
-    https://dashboard.heroku.com/apps/intense-plateau-55893
+    https://intense-plateau-55893.herokuapp.com/
     
   ## Usage
 
